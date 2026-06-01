@@ -6,12 +6,7 @@ from config import Config
 users_bp = Blueprint('users', __name__)
 
 def get_db():
-    return mysql.connector.connect(
-        host=Config.MYSQL_HOST,
-        user=Config.MYSQL_USER,
-        password=Config.MYSQL_PASSWORD,
-        database=Config.MYSQL_DB
-    )
+    return mysql.connector.connect(host=Config.MYSQL_HOST, user=Config.MYSQL_USER, password=Config.MYSQL_PASSWORD, database=Config.MYSQL_DB, port=Config.MYSQL_PORT)
 
 @users_bp.route('/enroll', methods=['POST'])
 @jwt_required()

@@ -6,12 +6,7 @@ from config import Config
 courses_bp = Blueprint('courses', __name__)
 
 def get_db():
-    return mysql.connector.connect(
-        host=Config.MYSQL_HOST,
-        user=Config.MYSQL_USER,
-        password=Config.MYSQL_PASSWORD,
-        database=Config.MYSQL_DB
-    )
+    return mysql.connector.connect(host=Config.MYSQL_HOST, user=Config.MYSQL_USER, password=Config.MYSQL_PASSWORD, database=Config.MYSQL_DB, port=Config.MYSQL_PORT)
 
 @courses_bp.route('/courses', methods=['GET'])
 def get_courses():
