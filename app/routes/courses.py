@@ -1,21 +1,22 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-import mysql.connector
+import psycopg2
 from config import Config
 
 courses_bp = Blueprint('courses', __name__)
 
 def get_db():
-    return mysql.connector.connect(host=Config.MYSQL_HOST, user=Config.MYSQL_USER, password=Config.MYSQL_PASSWORD, database=Config.MYSQL_DB, port=Config.MYSQL_PORT)
+    return psycopg2.connect(Config.DATABASE_URL)
 
 @courses_bp.route('/courses', methods=['GET'])
 def get_courses():
     db = get_db()
-    cursor = db.cursor(dictionary=True)
-    cursor.execute('SELECT * FROM courses WHERE is_published = TRUE')
-    courses = cursor.fetchall()
+    cursor = db.cursor()
+    cursor.execute('SELECT id, instructor_id, title, description, price, is_published, created_at FROM courses WHERE is_published = TRUE')
+    rows = cursor.fetchall()
     cursor.close()
     db.close()
+    courses = [{'id': r[0], 'instructor_id': r[1], 'title': r[2], 'description': r[3], 'price': str(r[4]), 'is_published': r[5], 'created_at': str(r[6])} for r in rows]
     return jsonify(courses), 200
 
 @courses_bp.route('/courses', methods=['POST'])
@@ -41,14 +42,17 @@ def add_course():
 @courses_bp.route('/courses/<int:course_id>', methods=['GET'])
 def get_course(course_id):
     db = get_db()
-    cursor = db.cursor(dictionary=True)
-    cursor.execute('SELECT * FROM courses WHERE id = %s', (course_id,))
-    course = cursor.fetchone()
-    cursor.execute('SELECT * FROM modules WHERE course_id = %s', (course_id,))
-    modules = cursor.fetchall()
-    for module in modules:
-        cursor.execute('SELECT * FROM lessons WHERE module_id = %s', (module['id'],))
-        module['lessons'] = cursor.fetchall()
+    cursor = db.cursor()
+    cursor.execute('SELECT id, instructor_id, title, description, price FROM courses WHERE id = %s', (course_id,))
+    r = cursor.fetchone()
+    course = {'id': r[0], 'instructor_id': r[1], 'title': r[2], 'description': r[3], 'price': str(r[4])} if r else None
+    cursor.execute('SELECT id, title, order_num FROM modules WHERE course_id = %s', (course_id,))
+    module_rows = cursor.fetchall()
+    modules = []
+    for m in module_rows:
+        cursor.execute('SELECT id, title FROM lessons WHERE module_id = %s', (m[0],))
+        lessons = [{'id': l[0], 'title': l[1]} for l in cursor.fetchall()]
+        modules.append({'id': m[0], 'title': m[1], 'lessons': lessons})
     cursor.close()
     db.close()
     return jsonify({'course': course, 'modules': modules}), 200

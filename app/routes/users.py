@@ -1,12 +1,12 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-import mysql.connector
+import psycopg2
 from config import Config
 
 users_bp = Blueprint('users', __name__)
 
 def get_db():
-    return mysql.connector.connect(host=Config.MYSQL_HOST, user=Config.MYSQL_USER, password=Config.MYSQL_PASSWORD, database=Config.MYSQL_DB, port=Config.MYSQL_PORT)
+    return psycopg2.connect(Config.DATABASE_URL)
 
 @users_bp.route('/enroll', methods=['POST'])
 @jwt_required()
@@ -31,9 +31,10 @@ def enroll():
 def dashboard():
     user_id = get_jwt_identity()
     db = get_db()
-    cursor = db.cursor(dictionary=True)
-    cursor.execute('SELECT c.* FROM courses c JOIN enrollments e ON c.id = e.course_id WHERE e.user_id = %s', (user_id,))
-    courses = cursor.fetchall()
+    cursor = db.cursor()
+    cursor.execute('SELECT c.id, c.title, c.description, c.price FROM courses c JOIN enrollments e ON c.id = e.course_id WHERE e.user_id = %s', (user_id,))
+    rows = cursor.fetchall()
     cursor.close()
     db.close()
+    courses = [{'id': r[0], 'title': r[1], 'description': r[2], 'price': str(r[3])} for r in rows]
     return jsonify(courses), 200
