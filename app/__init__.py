@@ -6,7 +6,7 @@ from config import Config
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
-    CORS(app)
+    CORS(app, origins=['https://fastidious-buttercream-7b5677.netlify.app', 'http://localhost:3000'])
     JWTManager(app)
     from app.routes.auth import auth_bp
     from app.routes.courses import courses_bp
